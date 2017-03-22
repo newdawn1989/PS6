@@ -72,18 +72,19 @@ When storing the sequence of edit operations in a, use a special symbol to denot
 no-ops.
 '''
 def compute_cost(cost_matrix,i,j): #function to compute the local cost of performing a trace-back operations
+	print "i,j", i,j
 	if i < 0 or j < 0:
-		return 777777
+		return -777777777
 	else:
 		return cost_matrix[i,j]
 def get_cheapestst_op(i,j,cost_matrix):
 	#NEED TO ADD WEIGHTED COST VALUES FOR OPERATIONS INDEL+=1, SUB+=10 SWAP+=10*2(SUB)
-	insert_cost = compute_cost(cost_matrix,i-1,j)
+	insert_cost = compute_cost(cost_matrix,i-1,j)	
 	delete_cost = compute_cost(cost_matrix,i,j-1)
 	sub = compute_cost(cost_matrix,i-1,j-1)
 	swap = compute_cost(cost_matrix,i-2,j-2)
-	ops = [(insert_cost,'insert', i, j-1),(delete_cost, 'delete', i-1,j),(sub, 'sub', i-1, j-1),(swap, 'swap', i-2, j-2)]
-	cost,op,new_i, new_j = min(ops,key = lambda v:v[0])
+	ops = [(insert_cost,'insert', i-1, j),(delete_cost, 'delete', i,j-1),(sub, 'sub', i-1, j-1),(swap, 'swap', i-2, j-2)]
+	cost,op,new_i, new_j = max(ops,key = lambda v:v[0])
 	print ops
 	print cost,op, i,j
 	if op  == sub and cost_matrix[i,j] == cost:
@@ -96,7 +97,10 @@ def extractAlignment(cost_matrix):
 	j-=1
 	a = []
 	while i >0 or j>0:
+		if j<-2:
+			break
 		print"================================================="
+		print cost_matrix
 		op,i,j = get_cheapestst_op(i,j,cost_matrix) 
 		print i,j
 		a.append(op)
