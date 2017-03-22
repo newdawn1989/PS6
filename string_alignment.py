@@ -4,11 +4,13 @@ import numpy as np
 these functions correspond to the available operations in our string alignment.
 The functions define the behavior as well as the value of these operations
 '''
-def indel(cost_matrix, ix, iy):
-	x_indel = cost_matrix[ix,iy-1]
+def insert(cost_matrix, ix, iy):
 	y_indel = cost_matrix[ix-1, iy]
-	return min(x_indel, y_indel)+1
+	return  y_indel+1
 
+def delete(cost_matrix, ix, iy):
+	x_indel = cost_matrix[ix,iy-1]
+	return x_indel+1
 
 def sub(cost_matrix, ix, iy, x, y):
 	if x[ix-1]!=y[iy-1]:
@@ -24,24 +26,35 @@ def swap(cost_matrix, ix, iy):
 
 
 def cost_of_op(cost_matrix, ix, iy, x, y): #function to calculate the min cost of all available operations
-	return min(indel(cost_matrix, ix, iy), sub(cost_matrix, ix, iy, x, y),swap(cost_matrix, ix, iy))
-
-
+	insert_cost = insert(cost_matrix,ix,iy)	
+	delete_cost = delete(cost_matrix,ix,iy)
+	sub_cost = sub(cost_matrix,ix,iy, x, y)
+	swap_cost = swap(cost_matrix,ix,iy)
+	ops = [(insert_cost, ix-1, iy),(delete_cost, ix,iy-1),(sub_cost, ix-1, iy-1),(swap_cost, ix-2, iy-2)]
+	return min(ops,key = lambda v: v[0])
 def alignStrings(x,y):
 	nx = len(x)
 	ny = len(y)
+	pointer_matrix = np.zeros((nx+1, ny+1, 2))# 3d array to hold pairs of values for the path we take to optimal solution
 	cost_matrix = np.zeros((nx+1, ny+1))
 	for i in xrange(0,nx+1):
 		cost_matrix[i,0]=i
+		pointer_matrix[i,0,0] = i-1 #x coordinate
+		pointer_matrix[i,0,1] = 0 #y coordinate
 	for i in xrange(0,ny+1):
 		cost_matrix[0,i] = i
+		pointer_matrix[0,i,0] = 0 #x coordinate
+		pointer_matrix[0,i,1] = i-1 #y coordinate
+
 	for ix in xrange (1, nx+1):
 		for iy in xrange(1, ny+1):
-			cost_matrix[ix,iy] = cost_of_op(cost_matrix,ix,iy, x, y)
-	return cost_matrix
+			cost,prev_ix, prev_iy = cost_of_op(cost_matrix,ix,iy, x, y)
+			cost_matrix[ix,iy] = cost
+			pointer_matrix[ix,iy,0] = prev_ix 
+			pointer_matrix[ix,iy,1] = prev_iy 
+	return cost_matrix, pointer_matrix
 
-q = alignStrings("AGA","ACGT")
-print q
+cost_matrix, pointer_matrix = alignStrings("AGA","ACGT")
 '''
  returns a
 
@@ -77,21 +90,33 @@ def compute_cost(cost_matrix,i,j): #function to compute the local cost of perfor
 		return -777777777
 	else:
 		return cost_matrix[i,j]
-def get_cheapestst_op(i,j,cost_matrix):
-	#NEED TO ADD WEIGHTED COST VALUES FOR OPERATIONS INDEL+=1, SUB+=10 SWAP+=10*2(SUB)
-	insert_cost = compute_cost(cost_matrix,i-1,j)	
-	delete_cost = compute_cost(cost_matrix,i,j-1)
-	sub = compute_cost(cost_matrix,i-1,j-1)
-	swap = compute_cost(cost_matrix,i-2,j-2)
-	ops = [(insert_cost,'insert', i-1, j),(delete_cost, 'delete', i,j-1),(sub, 'sub', i-1, j-1),(swap, 'swap', i-2, j-2)]
-	cost,op,new_i, new_j = max(ops,key = lambda v:v[0])
-	print ops
-	print cost,op, i,j
+def get_op_name(ix, prev_ix, iy, prev_iy):
+	xdiff = ix-prev_ix
+	ydiff = iy-prev_iy
+	if xdiff == 1 and ydiff == 0:
+		return "insert"
+	elif xdiff == 0 and ydiff == 1:
+		return "delete"
+	elif xdiff == 1 and ydiff == 1:
+		return "sub"
+	elif xdiff == 2 and ydiff == 2:
+		return "swap"
+	else:
+		raise Exception("Bad diff (x = %d, y = %d" %(xdiff, ydiff))
+
+def get_cheapestst_op(ix,iy,cost_matrix,pointer_matrix):
+	prev_ix = pointer_matrix[ix, iy,0]
+	prev_iy = pointer_matrix[ix,iy,1]
+	cost = cost_matrix[ix,iy]
+
+	op = get_op_name(ix, prev_ix, iy, prev_iy)
+
 	if op  == sub and cost_matrix[i,j] == cost:
 		op = "nop"
-	return op, new_i, new_j
+	print cost, op
+	return op, prev_ix, prev_iy
 
-def extractAlignment(cost_matrix):
+def extractAlignment(cost_matrix, pointer_matrix):
 	i,j = cost_matrix.shape
 	i-=1
 	j-=1
@@ -99,12 +124,10 @@ def extractAlignment(cost_matrix):
 	while i >0 or j>0:
 		if j<-2:
 			break
-		print"================================================="
-		print cost_matrix
-		op,i,j = get_cheapestst_op(i,j,cost_matrix) 
-		print i,j
+		op,i,j = get_cheapestst_op(i,j,cost_matrix, pointer_matrix) 
 		a.append(op)
 	return a
 
-hat = extractAlignment(q)
+hat= extractAlignment(cost_matrix, pointer_matrix)
 print hat
+print cost_matrix
