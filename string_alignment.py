@@ -131,3 +131,38 @@ def extractAlignment(cost_matrix, pointer_matrix):
 hat= extractAlignment(cost_matrix, pointer_matrix)
 print hat
 print cost_matrix
+
+def sub_chain_to_string(sub_matrix, ix, iy, x):
+	substring = ""
+	while ix < sub_matrix.shape[0] and iy < sub_matrix.shape[1] and sub_matrix[ix,iy] == 1:#while current position is within the matrix and current cell is a 1
+		print ix,iy,x
+		substring+=x[ix-1]                                                                   #keep stepping diagonally and finding 1's
+		sub_matrix[ix,iy] = 0                                                               #end with there are no more 1's or we reach the end of the array
+		ix+=1
+		iy+=1
+	return substring
+
+
+def commonSubstring(pointer_matrix, x, L):
+	sub_matrix = np.zeros(pointer_matrix.shape[:2])# x by y copy of pointer matrix
+	substring  = []
+	for ix in range(1,pointer_matrix.shape[0]): #populating the submatrix with 1's in any location a sub happened. This makes tracking substrings easier
+		for iy in range(1,pointer_matrix.shape[1]):#not nessicarly part of the optimal path
+			prev_ix = pointer_matrix[ix,iy,0]
+			prev_iy = pointer_matrix[ix,iy,0]
+			if prev_ix == ix-1 and prev_iy == iy-1:
+				sub_matrix[ix, iy] = 1
+	print sub_matrix
+	for ix in range(1,sub_matrix.shape[0]):
+		for iy in range(1,sub_matrix.shape[0]):
+			prev_sub_found = sub_matrix[ix,iy]
+			if sub_matrix[ix,iy] == 1:
+				substrings = sub_chain_to_string(sub_matrix, ix, iy, x)
+			if len(substring)>=L:  #as long as the substring is long enough, then append the value in substring
+				substrings.append(substring)
+	return substrings
+				
+
+
+herp = commonSubstring(pointer_matrix,"AGA",1)
+print herp
